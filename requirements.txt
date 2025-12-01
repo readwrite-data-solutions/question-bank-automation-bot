@@ -1,0 +1,7 @@
+pandas
+openpyxl
+pymupdf
+requests
+fuzzywuzzy
+python-levenshtein
+xlsxwriter
