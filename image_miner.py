@@ -7,21 +7,57 @@ import pandas as pd
 from fuzzywuzzy import fuzz
 
 # CONFIG
-CLOUDFLARE_ACCOUNT_ID = os.environ.get("CF_ACCOUNT_ID")
-CLOUDFLARE_API_TOKEN = os.environ.get("CF_API_TOKEN")
 
-def upload_to_cloudflare(image_bytes, filename):
-    url = f"https://api.cloudflare.com/client/v4/accounts/{CLOUDFLARE_ACCOUNT_ID}/images/v1"
-    headers = {"Authorization": f"Bearer {CLOUDFLARE_API_TOKEN}"}
-    files = {"file": (filename, image_bytes)}
+def upload_image_api(image_bytes, filename):
+    url = "https://backend.succeedquiz.com/api/v1/upload"
+    
+    # 1. AUTHENTICATION
+    # ideally, store this long token in a GitHub Secret (API_TOKEN)
+    # and access it via: os.environ.get("API_TOKEN")
+    token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImVmOWVmM2YzLWZhY2YtNGJlYi04ZGMyLTRkNTIwZTYyNjIzYSIsImVtYWlsIjoib2Rhdmllc0ByZWFkd3JpdGVkcy5jb20iLCJyb2xlIjoiQURNSU4iLCJpc0VtYWlsVmVyaWZpZWQiOnRydWUsImlhdCI6MTc2NDA2MjQ1NCwiZXhwIjoxNzY0MDYzMzU0fQ.tBsIdsIyD66KHt7ogll9uI6kQJfsTtNQhpiXb3CwVug"
+    
+    headers = {
+        'Authorization': f'Bearer {token}'
+    }
+
+    # 2. FILE CONFIGURATION
+    # The key is likely 'file' based on standard APIs. 
+    # If your API expects 'image' or 'media', change the first string below.
+    files = [
+        ('File', (filename, image_bytes, 'image/png')) 
+    ]
+
     try:
-        r = requests.post(url, headers=headers, files=files)
-        if r.status_code == 200:
-            return r.json()['result']['variants'][0]
+        # 3. SEND REQUEST
+        response = requests.post(url, headers=headers, files=files)
+        
+        # 4. HANDLE RESPONSE
+        if response.status_code == 200 or response.status_code == 201:
+            print(f"  -> Upload Success: {filename}")
+            
+            # CRITICAL: Adjust this line to match your API's JSON response
+            # Run the request once in Postman to see where the URL is hidden.
+            # Common patterns:
+            # return response.json().get('url')
+            # return response.json()['data']['url']
+            # return response.json()['secure_url']
+            
+            # For now, I will guess it is at the root 'url' or 'data':
+            data = response.json()
+            if 'url' in data: return data['url']
+            if 'data' in data and 'url' in data['data']: return data['data']['url']
+            
+            # Fallback if we can't find the key
+            print(f"  -> Warning: Key 'url' not found in response: {data}")
+            return None
+            
+        else:
+            print(f"  -> API Error ({response.status_code}): {response.text}")
+            return None
+            
     except Exception as e:
-        print(f"Upload Error: {e}")
-    return None
-
+        print(f"  -> Upload Failed: {e}")
+        return None
 def find_image_below_text(doc, text_query):
     query_short = str(text_query)[:100]
     best_match_page = -1
