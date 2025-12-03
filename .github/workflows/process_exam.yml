@@ -40,9 +40,11 @@ jobs:
 
       # --- STEP 2: RUN MINER (Custom URL Version) ---
       - name: Run Image Miner
+        env:
+          # This maps the Secret to the Python Environment Variable
+          SUCCEED_API_TOKEN: ${{ secrets.SUCCEED_API_TOKEN }}
         run: |
-          # Usage: python image_miner.py [Excel] [PDF] [OutputJSON]
-          # Note: We don't need CF secrets here because you hardcoded the token in the script
+          # The script will now read the token from the env var above
           python image_miner.py "${{ env.EXAM_NAME }}.xlsx" "${{ env.EXAM_NAME }}.pdf" image_lookup.json
 
       # --- STEP 3: RUN TRANSFORMATION ---
@@ -63,11 +65,16 @@ jobs:
       # --- STEP 4: SEND BACK TO N8N ---
       - name: Send Result to n8n
         run: |
-          # Get the Wait URL dynamically from the payload
-          CALLBACK_URL="${{ github.event.client_payload.callback_url }}"
+          # We use the N8N_UPLOAD_URL secret here if callback_url fails, 
+          # or as a fallback. 
+          # If you are using the dynamic callback from n8n, this step uses that.
+          # If you want to force it to use the stored secret:
+          TARGET_URL="${{ github.event.client_payload.callback_url }}"
           
-          # Upload final file back to n8n
-          # curl -F automatically handles the multipart/form-data content type
+          if [ -z "$TARGET_URL" ]; then
+            TARGET_URL="${{ secrets.N8N_UPLOAD_URL }}"
+          fi
+          
           curl -X POST \
             -F "data=@${{ env.FINAL_FILE }}" \
-            "$CALLBACK_URL"
+            "$TARGET_URL"
