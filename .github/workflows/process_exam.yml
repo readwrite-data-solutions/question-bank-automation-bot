@@ -70,11 +70,6 @@ jobs:
           # If you are using the dynamic callback from n8n, this step uses that.
           # If you want to force it to use the stored secret:
           TARGET_URL="${{ github.event.client_payload.callback_url }}"
-          
-          if [ -z "$TARGET_URL" ]; then
-            TARGET_URL="${{ secrets.N8N_UPLOAD_URL }}"
-          fi
-          
           curl -X POST \
             -F "data=@${{ env.FINAL_FILE }}" \
             "$TARGET_URL"
