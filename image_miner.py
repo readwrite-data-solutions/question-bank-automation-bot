@@ -7,50 +7,34 @@ import pandas as pd
 from fuzzywuzzy import fuzz
 
 # CONFIG
+import os  # <--- MAKE SURE YOU IMPORT OS AT THE TOP
 
 def upload_image_api(image_bytes, filename):
     url = "https://backend.succeedquiz.com/api/v1/upload"
     
-    # 1. AUTHENTICATION
-    # ideally, store this long token in a GitHub Secret (API_TOKEN)
-    # and access it via: os.environ.get("API_TOKEN")
-    token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImVmOWVmM2YzLWZhY2YtNGJlYi04ZGMyLTRkNTIwZTYyNjIzYSIsImVtYWlsIjoib2Rhdmllc0ByZWFkd3JpdGVkcy5jb20iLCJyb2xlIjoiQURNSU4iLCJpc0VtYWlsVmVyaWZpZWQiOnRydWUsImlhdCI6MTc2NDA2MjQ1NCwiZXhwIjoxNzY0MDYzMzU0fQ.tBsIdsIyD66KHt7ogll9uI6kQJfsTtNQhpiXb3CwVug"
+    # SECURITY UPDATE: Read from GitHub Secrets
+    token = os.environ.get("SUCCEED_API_TOKEN")
+    
+    if not token:
+        print("Error: SUCCEED_API_TOKEN not found in environment variables.")
+        return None
     
     headers = {
         'Authorization': f'Bearer {token}'
     }
 
-    # 2. FILE CONFIGURATION
-    # The key is likely 'file' based on standard APIs. 
-    # If your API expects 'image' or 'media', change the first string below.
     files = [
         ('File', (filename, image_bytes, 'image/png')) 
     ]
 
     try:
-        # 3. SEND REQUEST
+        # Standard requests logic...
         response = requests.post(url, headers=headers, files=files)
         
-        # 4. HANDLE RESPONSE
         if response.status_code == 200 or response.status_code == 201:
             print(f"  -> Upload Success: {filename}")
-            
-            # CRITICAL: Adjust this line to match your API's JSON response
-            # Run the request once in Postman to see where the URL is hidden.
-            # Common patterns:
-            # return response.json().get('url')
-            # return response.json()['data']['url']
-            # return response.json()['secure_url']
-            
-            # For now, I will guess it is at the root 'url' or 'data':
-            data = response.json()
-            if 'url' in data: return data['url']
-            if 'data' in data and 'url' in data['data']: return data['data']['url']
-            
-            # Fallback if we can't find the key
-            print(f"  -> Warning: Key 'url' not found in response: {data}")
-            return None
-            
+            # Adjust based on your API response structure
+            return response.json().get('url') 
         else:
             print(f"  -> API Error ({response.status_code}): {response.text}")
             return None
